@@ -4,3 +4,4 @@ backend/uploads/
 frontend/build/
 *.log
 .DS_Store
+minikube-linux-amd64
