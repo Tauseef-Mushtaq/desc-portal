@@ -1,0 +1,59 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * { box-sizing: border-box; }
+  body {
+    font-family: 'Inter', sans-serif;
+    background-color: #f7fafc;
+    color: #181c1e;
+    margin: 0;
+  }
+  .material-symbols-outlined {
+    font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+    display: inline-block;
+    line-height: 1;
+    text-transform: none;
+    letter-spacing: normal;
+    word-wrap: normal;
+    white-space: nowrap;
+    direction: ltr;
+    font-size: 24px;
+    vertical-align: middle;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply bg-primary text-white font-semibold px-6 py-3 rounded-lg hover:bg-primary-container transition-all active:scale-[0.98] shadow-sm hover:shadow-md;
+  }
+  .btn-secondary {
+    @apply border border-primary text-primary font-semibold px-6 py-3 rounded-lg hover:bg-primary-fixed transition-all;
+  }
+  .card {
+    @apply bg-surface-container-lowest border border-outline-variant rounded-xl shadow-[0px_4px_6px_rgba(0,0,0,0.05)];
+  }
+  .input-field {
+    @apply w-full px-4 py-3 rounded-lg border border-outline bg-surface text-on-surface focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all text-sm;
+  }
+  .nav-link {
+    @apply flex items-center gap-3 px-4 py-3 rounded-full text-on-surface-variant hover:bg-surface-variant transition-all font-medium text-sm;
+  }
+  .nav-link-active {
+    @apply flex items-center gap-3 px-4 py-3 rounded-full bg-secondary-container text-on-secondary-container font-semibold text-sm;
+  }
+  .status-badge {
+    @apply inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold;
+  }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #c4c6cf; border-radius: 10px; }
+::-webkit-scrollbar-thumb:hover { background: #74777f; }
+
+/* Page transition */
+.page-enter { opacity: 0; transform: translateY(8px); }
+.page-enter-active { opacity: 1; transform: translateY(0); transition: 0.2s ease; }
