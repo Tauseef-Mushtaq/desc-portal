@@ -141,12 +141,12 @@ export default function LoginPage() {
             </div>
           </div>
 
-          {/* Demo credentials */}
+          {/* Demo credentials
           <div className="mt-4 p-4 bg-primary-fixed rounded-xl text-xs text-on-primary-fixed space-y-1">
             <p className="font-semibold mb-2">Demo Credentials:</p>
             <p>Admin: <span className="font-mono">admin@desc.gov.pk</span> / <span className="font-mono">admin123</span></p>
             <p>Citizen: <span className="font-mono">ahmed@example.com</span> / <span className="font-mono">citizen123</span></p>
-          </div>
+          </div> */}
         </div>
       </main>
     </div>
