@@ -16,7 +16,7 @@ spec:
       containers:
         - name: backend
           image: tauseefmushtaq/desc-backend:v1
-          imagePullPolicy: Never
+          imagePullPolicy: Always
           ports:
             - containerPort: 5000
           envFrom:

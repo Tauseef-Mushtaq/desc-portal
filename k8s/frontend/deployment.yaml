@@ -16,7 +16,7 @@ spec:
       containers:
         - name: frontend
           image: tauseefmushtaq/desc-frontend:v1
-          imagePullPolicy: Never
+          imagePullPolicy: Always
           ports:
             - containerPort: 80
           resources:

@@ -16,7 +16,7 @@ spec:
       containers:
         - name: mongodb
           image: mongo:latest
-          imagePullPolicy: Never
+          imagePullPolicy: Always
           ports:
             - containerPort: 27017
           volumeMounts:
