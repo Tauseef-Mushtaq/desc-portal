@@ -5,6 +5,11 @@ metadata:
   namespace: desc-portal
   annotations:
     nginx.ingress.kubernetes.io/rewrite-target: /
+    # Socket.IO connections are long-lived, not request/response — without
+    # these, the ingress controller's default ~60s timeout would silently
+    # drop idle notification sockets and force constant reconnects.
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
 spec:
   rules:
     - host: desc-portal.local

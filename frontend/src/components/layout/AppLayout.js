@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import NotificationBell from './NotificationBell';
+import Avatar from '../common/Avatar';
 
 const navLinks = [
   { to: '/home', icon: 'home', label: 'Home' },
@@ -65,10 +67,9 @@ export default function AppLayout({ children, title }) {
         </nav>
 
         <div className="flex items-center gap-3">
+          <NotificationBell />
           <div className="hidden md:flex items-center gap-2 text-sm text-on-surface-variant">
-            <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-white text-xs font-bold">
-              {user?.fullName?.charAt(0).toUpperCase()}
-            </div>
+            <Avatar user={user} size={32} />
             <span className="font-medium text-on-surface">{user?.fullName?.split(' ')[0]}</span>
           </div>
           <button
@@ -94,9 +95,7 @@ export default function AppLayout({ children, title }) {
           {/* User info */}
           <div className="p-6 border-b border-outline-variant/50">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-full bg-primary flex items-center justify-center text-white font-bold text-lg flex-shrink-0">
-                {user?.fullName?.charAt(0).toUpperCase()}
-              </div>
+              <Avatar user={user} size={48} />
               <div className="min-w-0">
                 <p className="font-semibold text-primary truncate">{user?.fullName}</p>
                 <p className="text-xs text-on-surface-variant">{user?.city || 'Mardan'}, KPK</p>

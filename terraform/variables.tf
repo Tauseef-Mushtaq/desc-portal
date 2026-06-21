@@ -71,3 +71,47 @@ variable "storage_size" {
   type        = string
   default     = "1Gi"
 }
+
+variable "redis_image" {
+  description = "Docker image for Redis (backs the Socket.IO adapter for real-time notifications)"
+  type        = string
+  default     = "redis:7-alpine"
+}
+
+variable "minio_image" {
+  description = "Docker image for MinIO (S3-compatible object storage for attachments/avatars)"
+  type        = string
+  default     = "minio/minio:latest"
+}
+
+variable "minio_storage_size" {
+  description = "MinIO persistent storage size"
+  type        = string
+  default     = "5Gi"
+}
+
+variable "s3_bucket" {
+  description = "S3/MinIO bucket name for request attachments and avatars"
+  type        = string
+  default     = "desc-portal-uploads"
+}
+
+variable "s3_region" {
+  description = "S3 region (MinIO ignores the actual value, but the AWS SDK requires one to be set)"
+  type        = string
+  default     = "ap-south-1"
+}
+
+variable "minio_root_user" {
+  description = "MinIO root user / S3 access key"
+  type        = string
+  default     = "minioadmin"
+  sensitive   = true
+}
+
+variable "minio_root_password" {
+  description = "MinIO root password / S3 secret key"
+  type        = string
+  default     = "minioadmin123"
+  sensitive   = true
+}

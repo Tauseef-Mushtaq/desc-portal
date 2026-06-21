@@ -1,13 +1,16 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import AppLayout from '../components/layout/AppLayout';
+import Avatar from '../components/common/Avatar';
 import toast from 'react-hot-toast';
 
 export default function ProfilePage() {
   const { user, updateUser } = useAuth();
   const [tab, setTab] = useState('profile');
   const [saving, setSaving] = useState(false);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const fileInputRef = useRef(null);
   const [form, setForm] = useState({
     fullName: user?.fullName || '',
     phone: user?.phone || '',
@@ -56,6 +59,46 @@ export default function ProfilePage() {
     }
   };
 
+  const handleAvatarSelect = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = ''; // allow re-selecting the same file later
+    if (!file) return;
+
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error('Image must be smaller than 2MB');
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('avatar', file);
+
+    setUploadingAvatar(true);
+    try {
+      const { data } = await axios.post('/api/auth/avatar', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      updateUser(data.user);
+      toast.success('Profile picture updated');
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Upload failed');
+    } finally {
+      setUploadingAvatar(false);
+    }
+  };
+
+  const handleRemoveAvatar = async () => {
+    setUploadingAvatar(true);
+    try {
+      const { data } = await axios.delete('/api/auth/avatar');
+      updateUser(data.user);
+      toast.success('Profile picture removed');
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Could not remove avatar');
+    } finally {
+      setUploadingAvatar(false);
+    }
+  };
+
   return (
     <AppLayout>
       <div className="px-4 md:px-8 py-8 max-w-portal mx-auto pb-24 lg:pb-8">
@@ -69,9 +112,35 @@ export default function ProfilePage() {
           {/* Left: Avatar Card */}
           <div className="space-y-4">
             <div className="card p-6 text-center">
-              <div className="w-20 h-20 rounded-full bg-primary flex items-center justify-center text-white text-3xl font-bold mx-auto mb-4">
-                {user?.fullName?.charAt(0).toUpperCase()}
+              <div className="relative w-20 h-20 mx-auto mb-4">
+                <Avatar user={user} size={80} className="border-2 border-outline-variant" />
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploadingAvatar}
+                  className="absolute bottom-0 right-0 w-7 h-7 rounded-full bg-primary text-white flex items-center justify-center border-2 border-surface-container-lowest hover:bg-primary-container transition-colors disabled:opacity-60"
+                  aria-label="Change profile picture"
+                >
+                  <span className="material-symbols-outlined" style={{ fontSize: 14 }}>
+                    {uploadingAvatar ? 'hourglass_empty' : 'photo_camera'}
+                  </span>
+                </button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp,image/gif"
+                  onChange={handleAvatarSelect}
+                  className="hidden"
+                />
               </div>
+              {user?.avatar && (
+                <button
+                  onClick={handleRemoveAvatar}
+                  disabled={uploadingAvatar}
+                  className="text-xs text-error hover:underline mb-3 disabled:opacity-60"
+                >
+                  Remove photo
+                </button>
+              )}
               <h2 className="font-bold text-on-surface text-lg">{user?.fullName}</h2>
               <p className="text-sm text-on-surface-variant mt-1">{user?.email}</p>
               <span className={`inline-flex items-center gap-1 mt-3 px-3 py-1 rounded-full text-xs font-semibold ${

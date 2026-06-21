@@ -95,10 +95,17 @@ export default function AdminDashboard() {
             </div>
 
             {/* Second row */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+            <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
               <StatCard icon="folder_open" label="Total Requests" value={stats.total} color="bg-surface-container-high text-on-surface-variant" />
               <StatCard icon="check_circle" label="Approved" value={stats.approved} color="bg-green-50 text-green-700" />
               <StatCard icon="cancel" label="Rejected" value={stats.rejected} color="bg-error-container text-on-error-container" />
+              <StatCard
+                icon="star"
+                label="Avg. Satisfaction"
+                value={stats.avgRating ? `${stats.avgRating} / 5` : '—'}
+                color="bg-yellow-50 text-yellow-700"
+                trend={stats.ratingCount ? `from ${stats.ratingCount} ratings` : 'No ratings yet'}
+              />
               <div className="card p-6 lg:col-span-1">
                 <p className="text-xs font-semibold text-on-surface-variant uppercase tracking-wide mb-2">Resolution Rate</p>
                 <p className="text-3xl font-bold text-primary">

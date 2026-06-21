@@ -1,12 +1,30 @@
 const express = require('express');
 const router = express.Router();
 const jwt = require('jsonwebtoken');
+const multer = require('multer');
 const { body, validationResult } = require('express-validator');
 const User = require('../models/User');
 const { protect } = require('../middleware/auth');
+const { uploadBuffer, deleteObject, withAvatarUrl } = require('../utils/storage');
 
 const generateToken = (id) =>
   jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRE });
+
+// Avatars get a tight size/type limit — these are small profile pictures,
+// not document attachments, so 2MB and images-only is plenty. Like request
+// attachments, they go straight to S3/MinIO via memory storage, not local
+// disk, so they're reachable no matter which backend pod a request lands on.
+const avatarUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 2 * 1024 * 1024 }, // 2MB
+  fileFilter: (req, file, cb) => {
+    const allowed = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+    if (!allowed.includes(file.mimetype)) {
+      return cb(new Error('Only JPG, PNG, WEBP, or GIF images are allowed'));
+    }
+    cb(null, true);
+  },
+});
 
 // @POST /api/auth/register
 router.post(
@@ -62,7 +80,7 @@ router.post(
         success: true,
         message: 'Login successful',
         token: generateToken(user._id),
-        user,
+        user: await withAvatarUrl(user),
       });
     } catch (err) {
       res.status(500).json({ success: false, message: err.message });
@@ -72,7 +90,7 @@ router.post(
 
 // @GET /api/auth/me
 router.get('/me', protect, async (req, res) => {
-  res.json({ success: true, user: req.user });
+  res.json({ success: true, user: await withAvatarUrl(req.user) });
 });
 
 // @PUT /api/auth/profile
@@ -84,7 +102,7 @@ router.put('/profile', protect, async (req, res) => {
       { fullName, phone, address, cnic, city, province },
       { new: true, runValidators: true }
     );
-    res.json({ success: true, user });
+    res.json({ success: true, user: await withAvatarUrl(user) });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
@@ -101,6 +119,37 @@ router.put('/change-password', protect, async (req, res) => {
     user.password = newPassword;
     await user.save();
     res.json({ success: true, message: 'Password changed successfully' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// @POST /api/auth/avatar - upload/replace profile picture
+router.post('/avatar', protect, avatarUpload.single('avatar'), async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ success: false, message: 'No image file provided' });
+
+    const oldAvatarKey = req.user.avatar; // the key persisted in Mongo, not a signed URL
+    const ext = req.file.originalname.includes('.') ? `.${req.file.originalname.split('.').pop().toLowerCase()}` : '';
+    const key = `avatars/${req.user._id}-${Date.now()}${ext}`;
+    await uploadBuffer({ buffer: req.file.buffer, key, contentType: req.file.mimetype });
+
+    const user = await User.findByIdAndUpdate(req.user._id, { avatar: key }, { new: true });
+    deleteObject(oldAvatarKey).catch(() => {}); // best-effort cleanup, don't block the response on it
+
+    res.json({ success: true, message: 'Avatar updated successfully', user: await withAvatarUrl(user) });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// @DELETE /api/auth/avatar - remove profile picture, fall back to initials
+router.delete('/avatar', protect, async (req, res) => {
+  try {
+    const oldAvatarKey = req.user.avatar;
+    const user = await User.findByIdAndUpdate(req.user._id, { avatar: '' }, { new: true });
+    deleteObject(oldAvatarKey).catch(() => {});
+    res.json({ success: true, message: 'Avatar removed', user });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }

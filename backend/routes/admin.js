@@ -3,6 +3,8 @@ const router = express.Router();
 const ServiceRequest = require('../models/ServiceRequest');
 const User = require('../models/User');
 const { protect, adminOnly } = require('../middleware/auth');
+const { notifyUser } = require('../utils/notify');
+const { withAttachmentUrls, withAttachmentUrlsMany, withAvatarUrlMany } = require('../utils/storage');
 
 // Apply auth + admin middleware to all routes
 router.use(protect, adminOnly);
@@ -31,9 +33,17 @@ router.get('/stats', async (req, res) => {
     const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
     const recentRequests = await ServiceRequest.countDocuments({ createdAt: { $gte: sevenDaysAgo } });
 
+    // Average citizen satisfaction rating, from resolved requests that left feedback
+    const ratingAgg = await ServiceRequest.aggregate([
+      { $match: { 'feedback.rating': { $ne: null } } },
+      { $group: { _id: null, avgRating: { $avg: '$feedback.rating' }, ratingCount: { $sum: 1 } } },
+    ]);
+    const avgRating = ratingAgg[0] ? Math.round(ratingAgg[0].avgRating * 10) / 10 : null;
+    const ratingCount = ratingAgg[0] ? ratingAgg[0].ratingCount : 0;
+
     res.json({
       success: true,
-      stats: { total, submitted, inReview, pendingInfo, approved, rejected, resolved, totalCitizens, recentRequests, byServiceType },
+      stats: { total, submitted, inReview, pendingInfo, approved, rejected, resolved, totalCitizens, recentRequests, byServiceType, avgRating, ratingCount },
     });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
@@ -61,7 +71,13 @@ router.get('/requests', async (req, res) => {
       .sort({ createdAt: -1 })
       .skip((page - 1) * limit)
       .limit(Number(limit));
-    res.json({ success: true, requests, total, page: Number(page), pages: Math.ceil(total / limit) });
+    res.json({
+      success: true,
+      requests: await withAttachmentUrlsMany(requests),
+      total,
+      page: Number(page),
+      pages: Math.ceil(total / limit),
+    });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
@@ -72,7 +88,7 @@ router.get('/requests/:id', async (req, res) => {
   try {
     const request = await ServiceRequest.findById(req.params.id).populate('citizen', 'fullName email phone');
     if (!request) return res.status(404).json({ success: false, message: 'Request not found' });
-    res.json({ success: true, request });
+    res.json({ success: true, request: await withAttachmentUrls(request) });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
@@ -98,7 +114,22 @@ router.put('/requests/:id/status', async (req, res) => {
     });
 
     await request.save();
-    res.json({ success: true, message: 'Status updated', request });
+    res.json({ success: true, message: 'Status updated', request: await withAttachmentUrls(request) });
+
+    const statusLabels = {
+      submitted: 'Submitted', in_review: 'In Review', pending_info: 'Pending Info',
+      approved: 'Approved', rejected: 'Rejected', resolved: 'Resolved',
+    };
+    notifyUser({
+      userId: request.citizen,
+      type: status === 'resolved' ? 'feedback_request' : 'status_change',
+      title: `Request ${request.requestId} ${status === 'resolved' ? 'resolved' : 'updated'}`,
+      message: status === 'resolved'
+        ? `Your request "${request.subject}" has been resolved. We'd love your feedback!`
+        : `Your request "${request.subject}" is now ${statusLabels[status] || status}.`,
+      link: `/requests/${request._id}`,
+      relatedRequest: request._id,
+    }).catch((err) => console.error('notifyUser failed:', err.message));
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
@@ -114,7 +145,7 @@ router.put('/requests/:id/assign', async (req, res) => {
       { new: true }
     );
     if (!request) return res.status(404).json({ success: false, message: 'Request not found' });
-    res.json({ success: true, request });
+    res.json({ success: true, request: await withAttachmentUrls(request) });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
@@ -134,7 +165,7 @@ router.get('/citizens', async (req, res) => {
     }
     const total = await User.countDocuments(query);
     const citizens = await User.find(query).sort({ createdAt: -1 }).skip((page - 1) * limit).limit(Number(limit));
-    res.json({ success: true, citizens, total });
+    res.json({ success: true, citizens: await withAvatarUrlMany(citizens), total });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }

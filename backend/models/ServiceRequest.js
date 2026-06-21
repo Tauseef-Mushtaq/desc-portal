@@ -67,17 +67,23 @@ const serviceRequestSchema = new mongoose.Schema(
     // Attachments
     attachments: [
       {
-        filename: String,
+        key: String, // S3 object key — e.g. "attachments/<requestId>/<filename>"
         originalName: String,
         mimetype: String,
         size: Number,
-        path: String,
       },
     ],
 
     // Timeline
     timeline: [timelineEventSchema],
-    
+
+    // Citizen feedback — only collectible once a request is resolved
+    feedback: {
+      rating: { type: Number, min: 1, max: 5, default: null },
+      comment: { type: String, default: '' },
+      submittedAt: { type: Date, default: null },
+    },
+
     // Resolved date
     resolvedAt: { type: Date, default: null },
   },

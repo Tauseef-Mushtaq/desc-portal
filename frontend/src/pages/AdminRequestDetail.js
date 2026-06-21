@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import AppLayout from '../components/layout/AppLayout';
 import { StatusBadge, PriorityBadge } from '../components/common/StatusBadge';
+import StarRating from '../components/common/StarRating';
 import toast from 'react-hot-toast';
 
 const STATUS_OPTIONS = [
@@ -231,6 +232,23 @@ export default function AdminRequestDetail() {
               </dl>
             </div>
 
+            {/* Citizen Feedback */}
+            {request.feedback?.submittedAt && (
+              <div className="card p-6">
+                <h3 className="font-semibold text-on-surface mb-3 flex items-center gap-2">
+                  <span className="material-symbols-outlined text-primary" style={{ fontSize: 18 }}>rate_review</span>
+                  Citizen Feedback
+                </h3>
+                <StarRating value={request.feedback.rating} readOnly size={20} />
+                {request.feedback.comment && (
+                  <p className="text-sm text-on-surface-variant mt-2">{request.feedback.comment}</p>
+                )}
+                <p className="text-xs text-on-surface-variant mt-2">
+                  {new Date(request.feedback.submittedAt).toLocaleDateString('en-PK', { year: 'numeric', month: 'long', day: 'numeric' })}
+                </p>
+              </div>
+            )}
+
             {/* Attachments */}
             {request.attachments?.length > 0 && (
               <div className="card p-6">
@@ -240,11 +258,18 @@ export default function AdminRequestDetail() {
                 </h3>
                 <div className="space-y-2">
                   {request.attachments.map((a, i) => (
-                    <div key={i} className="flex items-center gap-2 text-sm text-on-surface-variant bg-surface-container p-2 rounded-lg">
+                    <a
+                      key={i}
+                      href={a.url || '#'}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 text-sm text-on-surface-variant bg-surface-container p-2 rounded-lg hover:bg-surface-container-high transition-colors"
+                    >
                       <span className="material-symbols-outlined" style={{ fontSize: 16 }}>attach_file</span>
                       <span className="flex-1 truncate">{a.originalName}</span>
                       <span className="text-xs">{(a.size / 1024).toFixed(0)} KB</span>
-                    </div>
+                      <span className="material-symbols-outlined text-primary" style={{ fontSize: 16 }}>download</span>
+                    </a>
                   ))}
                 </div>
               </div>

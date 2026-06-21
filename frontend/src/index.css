@@ -57,3 +57,22 @@
 /* Page transition */
 .page-enter { opacity: 0; transform: translateY(8px); }
 .page-enter-active { opacity: 1; transform: translateY(0); transition: 0.2s ease; }
+
+/* Auth pages — ambient floating service icons + a gentle rise-in for the form.
+   Restrained on purpose: one slow drift, one entrance, nothing else moving. */
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes auth-float {
+    0%, 100% { transform: translate(-50%, -50%) translateY(0); }
+    50% { transform: translate(-50%, -50%) translateY(-10px); }
+  }
+  .auth-float { animation: auth-float 6s ease-in-out infinite; }
+
+  @keyframes auth-rise {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .auth-rise { animation: auth-rise 0.5s ease-out; }
+}
+
+/* Reduced-motion fallback: chips still need centering even with no animation */
+.auth-float { transform: translate(-50%, -50%); }

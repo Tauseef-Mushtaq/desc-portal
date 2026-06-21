@@ -1,14 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import toast from 'react-hot-toast';
 import AppLayout from '../components/layout/AppLayout';
 import { StatusBadge, PriorityBadge } from '../components/common/StatusBadge';
+import StarRating from '../components/common/StarRating';
+import FeedbackForm from '../components/common/FeedbackForm';
+import { useSocket } from '../context/SocketContext';
 
 export default function RequestDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [request, setRequest] = useState(null);
   const [loading, setLoading] = useState(true);
+  const { socket } = useSocket();
 
   useEffect(() => {
     axios.get(`/api/requests/${id}`)
@@ -16,6 +21,21 @@ export default function RequestDetail() {
       .catch(() => navigate('/track-status'))
       .finally(() => setLoading(false));
   }, [id]);
+
+  // If an admin updates this exact request while the citizen has the page
+  // open, refetch silently so the status/timeline update live instead of
+  // requiring a manual refresh.
+  useEffect(() => {
+    if (!socket) return;
+    const handleNotification = (notification) => {
+      if (notification.relatedRequest === id) {
+        axios.get(`/api/requests/${id}`).then(({ data }) => setRequest(data.request)).catch(() => {});
+        toast(notification.title, { icon: '🔄' });
+      }
+    };
+    socket.on('notification:new', handleNotification);
+    return () => socket.off('notification:new', handleNotification);
+  }, [socket, id]);
 
   if (loading) return (
     <AppLayout>
@@ -124,6 +144,29 @@ export default function RequestDetail() {
                 ))}
               </div>
             </div>
+
+            {/* Feedback */}
+            {request.status === 'resolved' && (
+              <div className="card p-6">
+                <h2 className="font-semibold text-on-surface mb-3 flex items-center gap-2">
+                  <span className="material-symbols-outlined text-primary" style={{ fontSize: 18 }}>rate_review</span>
+                  Your Feedback
+                </h2>
+                {request.feedback?.submittedAt ? (
+                  <div>
+                    <StarRating value={request.feedback.rating} readOnly />
+                    {request.feedback.comment && (
+                      <p className="text-sm text-on-surface-variant mt-2">{request.feedback.comment}</p>
+                    )}
+                    <p className="text-xs text-on-surface-variant mt-2">
+                      Submitted {new Date(request.feedback.submittedAt).toLocaleDateString('en-PK', { year: 'numeric', month: 'long', day: 'numeric' })}
+                    </p>
+                  </div>
+                ) : (
+                  <FeedbackForm requestId={request._id} onSubmitted={(updated) => setRequest(updated)} />
+                )}
+              </div>
+            )}
           </div>
 
           {/* Sidebar */}
@@ -161,6 +204,32 @@ export default function RequestDetail() {
                 ))}
               </dl>
             </div>
+
+            {/* Attachments */}
+            {request.attachments?.length > 0 && (
+              <div className="card p-6">
+                <h3 className="font-semibold text-on-surface mb-4 flex items-center gap-2">
+                  <span className="material-symbols-outlined text-primary" style={{ fontSize: 18 }}>attach_file</span>
+                  Attachments ({request.attachments.length})
+                </h3>
+                <div className="space-y-2">
+                  {request.attachments.map((a, i) => (
+                    <a
+                      key={i}
+                      href={a.url || '#'}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 text-sm text-on-surface-variant bg-surface-container p-2 rounded-lg hover:bg-surface-container-high transition-colors"
+                    >
+                      <span className="material-symbols-outlined" style={{ fontSize: 16 }}>description</span>
+                      <span className="flex-1 truncate">{a.originalName}</span>
+                      <span className="text-xs">{(a.size / 1024).toFixed(0)} KB</span>
+                      <span className="material-symbols-outlined text-primary" style={{ fontSize: 16 }}>download</span>
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
