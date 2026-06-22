@@ -6,6 +6,7 @@ const path = require('path');
 const http = require('http');
 const { initSocket } = require('./utils/socket');
 const { ensureBucketExists } = require('./utils/storage');
+const { ensureDepartmentsSeeded } = require('./utils/departments');
 
 dotenv.config();
 
@@ -57,6 +58,7 @@ const startServer = async () => {
     console.log('✅ MongoDB connected to:', process.env.MONGODB_URI);
 
     await ensureBucketExists();
+    await ensureDepartmentsSeeded();
     await initSocket(server);
 
     server.listen(PORT, () => console.log(`🚀 Server running on http://localhost:${PORT}`));

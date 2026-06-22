@@ -72,6 +72,12 @@ export default function AdminRequestDetail() {
             <span className="text-xs font-mono text-on-surface-variant bg-surface-container px-2 py-1 rounded">{request.requestId}</span>
             <StatusBadge status={request.status} />
             <PriorityBadge priority={request.priority} />
+            {request.department && (
+              <span className="text-xs font-medium bg-secondary-container text-on-secondary-container px-2 py-1 rounded-full flex items-center gap-1">
+                <span className="material-symbols-outlined" style={{ fontSize: 14 }}>{request.department.icon}</span>
+                {request.department.name}
+              </span>
+            )}
           </div>
           <h1 className="text-xl md:text-2xl font-bold text-primary mb-1">{request.subject}</h1>
           <p className="text-sm text-on-surface-variant">

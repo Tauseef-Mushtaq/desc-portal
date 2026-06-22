@@ -23,7 +23,10 @@ export default function AppLayout({ children, title }) {
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  const links = user?.role === 'admin' ? adminLinks : navLinks;
+  const isSuperAdmin = user?.role === 'admin' && !user?.department;
+  const links = user?.role === 'admin'
+    ? isSuperAdmin ? [...adminLinks, { to: '/admin/staff', icon: 'groups', label: 'Staff & Departments' }] : adminLinks
+    : navLinks;
   const isActive = (to) => {
     if (to === '/admin') return location.pathname === '/admin';
     if (to === '/home') return location.pathname === '/home';
@@ -100,7 +103,9 @@ export default function AppLayout({ children, title }) {
                 <p className="font-semibold text-primary truncate">{user?.fullName}</p>
                 <p className="text-xs text-on-surface-variant">{user?.city || 'Mardan'}, KPK</p>
                 {user?.role === 'admin' && (
-                  <span className="text-xs bg-primary text-white px-2 py-0.5 rounded-full mt-1 inline-block">Admin</span>
+                  <span className="text-xs bg-primary text-white px-2 py-0.5 rounded-full mt-1 inline-block">
+                    {user?.department?.name || 'Super Admin'}
+                  </span>
                 )}
               </div>
             </div>

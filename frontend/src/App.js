@@ -15,6 +15,7 @@ import RequestDetail from './pages/RequestDetail';
 import AdminDashboard from './pages/AdminDashboard';
 import AdminRequests from './pages/AdminRequests';
 import AdminRequestDetail from './pages/AdminRequestDetail';
+import AdminStaff from './pages/AdminStaff';
 import ProfilePage from './pages/ProfilePage';
 import NotFound from './pages/NotFound';
 
@@ -29,6 +30,14 @@ const AdminRoute = ({ children }) => {
   if (loading) return <LoadingScreen />;
   if (!user) return <Navigate to="/login" replace />;
   if (user.role !== 'admin') return <Navigate to="/dashboard" replace />;
+  return children;
+};
+
+const SuperAdminRoute = ({ children }) => {
+  const { user, loading } = useAuth();
+  if (loading) return <LoadingScreen />;
+  if (!user) return <Navigate to="/login" replace />;
+  if (user.role !== 'admin' || user.department) return <Navigate to="/admin" replace />;
   return children;
 };
 
@@ -68,6 +77,7 @@ function AppRoutes() {
       <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
       <Route path="/admin/requests" element={<AdminRoute><AdminRequests /></AdminRoute>} />
       <Route path="/admin/requests/:id" element={<AdminRoute><AdminRequestDetail /></AdminRoute>} />
+      <Route path="/admin/staff" element={<SuperAdminRoute><AdminStaff /></SuperAdminRoute>} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   );

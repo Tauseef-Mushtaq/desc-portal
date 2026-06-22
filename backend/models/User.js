@@ -12,6 +12,11 @@ const userSchema = new mongoose.Schema(
     city: { type: String, default: 'Mardan' },
     province: { type: String, default: 'KPK' },
     role: { type: String, enum: ['citizen', 'admin'], default: 'citizen' },
+    // Admins with no department are super-admins — they see every request,
+    // across every department, the same way the original single admin
+    // account always has. Admins WITH a department only see requests whose
+    // serviceType routes to that department (see utils/departments.js).
+    department: { type: mongoose.Schema.Types.ObjectId, ref: 'Department', default: null },
     avatar: { type: String, default: '' },
     isActive: { type: Boolean, default: true },
   },

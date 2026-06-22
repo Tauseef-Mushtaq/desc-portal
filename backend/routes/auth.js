@@ -69,7 +69,7 @@ router.post(
 
     try {
       const { email, password } = req.body;
-      const user = await User.findOne({ email });
+      const user = await User.findOne({ email }).populate('department', 'name icon');
       if (!user || !(await user.comparePassword(password))) {
         return res.status(401).json({ success: false, message: 'Invalid email or password' });
       }
@@ -90,6 +90,7 @@ router.post(
 
 // @GET /api/auth/me
 router.get('/me', protect, async (req, res) => {
+  await req.user.populate('department', 'name icon');
   res.json({ success: true, user: await withAvatarUrl(req.user) });
 });
 

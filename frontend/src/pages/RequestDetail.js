@@ -73,6 +73,12 @@ export default function RequestDetail() {
               <p className="text-sm text-on-surface-variant mt-1">
                 {request.serviceTypeLabel} · Submitted {new Date(request.createdAt).toLocaleDateString('en-PK', { year: 'numeric', month: 'long', day: 'numeric' })}
               </p>
+              {request.department && (
+                <p className="text-sm text-on-surface-variant mt-1 flex items-center gap-1">
+                  <span className="material-symbols-outlined" style={{ fontSize: 15 }}>{request.department.icon}</span>
+                  Handled by {request.department.name}
+                </p>
+              )}
             </div>
           </div>
         </div>

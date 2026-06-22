@@ -22,4 +22,12 @@ const adminOnly = (req, res, next) => {
   res.status(403).json({ success: false, message: 'Admin access required' });
 };
 
-module.exports = { protect, adminOnly };
+// Department-scoped admins manage their own department's requests; only a
+// super-admin (an admin with no department assigned) can create staff
+// accounts or manage departments themselves.
+const superAdminOnly = (req, res, next) => {
+  if (req.user && req.user.role === 'admin' && !req.user.department) return next();
+  res.status(403).json({ success: false, message: 'Super-admin access required' });
+};
+
+module.exports = { protect, adminOnly, superAdminOnly };

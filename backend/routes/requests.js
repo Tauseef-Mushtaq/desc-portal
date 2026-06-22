@@ -6,6 +6,7 @@ const ServiceRequest = require('../models/ServiceRequest');
 const { protect } = require('../middleware/auth');
 const { notifyAdmins } = require('../utils/notify');
 const { uploadBuffer, withAttachmentUrls, withAttachmentUrlsMany } = require('../utils/storage');
+const { withDepartment, withDepartmentMany } = require('../utils/departments');
 
 // Files land in memory just long enough to stream straight to S3/MinIO —
 // nothing touches local disk, so it doesn't matter which backend pod
@@ -35,7 +36,7 @@ router.get('/', protect, async (req, res) => {
       .limit(Number(limit));
     res.json({
       success: true,
-      requests: await withAttachmentUrlsMany(requests),
+      requests: await withDepartmentMany(await withAttachmentUrlsMany(requests)),
       total,
       page: Number(page),
       pages: Math.ceil(total / limit),
@@ -71,7 +72,7 @@ router.get('/:id', protect, async (req, res) => {
       citizen: req.user._id,
     });
     if (!request) return res.status(404).json({ success: false, message: 'Request not found' });
-    res.json({ success: true, request: await withAttachmentUrls(request) });
+    res.json({ success: true, request: await withDepartment(await withAttachmentUrls(request)) });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
@@ -118,7 +119,7 @@ router.post('/', protect, upload.array('attachments', 5), async (req, res) => {
     res.status(201).json({
       success: true,
       message: 'Request submitted successfully',
-      request: await withAttachmentUrls(request),
+      request: await withDepartment(await withAttachmentUrls(request)),
     });
 
     // Fire-and-forget: don't make the citizen wait on notification delivery.
