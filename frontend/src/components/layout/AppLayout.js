@@ -9,12 +9,14 @@ const navLinks = [
   { to: '/dashboard', icon: 'grid_view', label: 'My Dashboard' },
   { to: '/submit-request', icon: 'add_circle', label: 'Submit Request' },
   { to: '/track-status', icon: 'history', label: 'Track Status' },
+  { to: '/complaints', icon: 'forum', label: 'Complaints & Feedback' },
   { to: '/profile', icon: 'person', label: 'Profile' },
 ];
 
 const adminLinks = [
   { to: '/admin', icon: 'monitoring', label: 'Overview' },
   { to: '/admin/requests', icon: 'folder_open', label: 'All Requests' },
+  { to: '/admin/complaints', icon: 'forum', label: 'Complaints & Feedback' },
 ];
 
 export default function AppLayout({ children, title }) {

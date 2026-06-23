@@ -124,6 +124,17 @@ function isServiceTypeInScope(scopeFilter, serviceType) {
   return scopeFilter.serviceType.$in.includes(serviceType);
 }
 
+// Same access-control idea as getScopeFilter(), but for complaints, which
+// have a direct `department` field rather than one computed from
+// serviceType. A super-admin sees everything, including general feedback
+// with no department. A department admin ONLY sees complaints filed about
+// their own department — never general feedback, never another
+// department's complaints.
+function getComplaintScopeFilter(user) {
+  if (!user || !user.department) return {};
+  return { department: user.department };
+}
+
 module.exports = {
   DEPARTMENT_SEED,
   ensureDepartmentsSeeded,
@@ -132,4 +143,5 @@ module.exports = {
   withDepartmentMany,
   getScopeFilter,
   isServiceTypeInScope,
+  getComplaintScopeFilter,
 };

@@ -37,4 +37,20 @@ async function notifyAdmins({ type = 'general', title, message, link = '', relat
   );
 }
 
-module.exports = { notifyUser, notifyAdmins };
+// For complaints/feedback: notifies every super-admin (always — this is a
+// grievance mechanism, the top level should always know) plus, if the
+// complaint names a specific department, that department's own admins too.
+// Deliberately NOT "all admins" the way notifyAdmins is — a complaint about
+// the Water department has no business reaching the Energy department.
+async function notifyComplaintRecipients({ departmentId, type = 'general', title, message, link = '' }) {
+  const User = require('../models/User');
+  const query = departmentId
+    ? { role: 'admin', $or: [{ department: null }, { department: departmentId }] }
+    : { role: 'admin', department: null };
+  const recipients = await User.find(query).select('_id');
+  return Promise.all(
+    recipients.map((admin) => notifyUser({ userId: admin._id, type, title, message, link }))
+  );
+}
+
+module.exports = { notifyUser, notifyAdmins, notifyComplaintRecipients };

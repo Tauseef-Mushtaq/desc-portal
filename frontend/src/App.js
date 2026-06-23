@@ -16,6 +16,9 @@ import AdminDashboard from './pages/AdminDashboard';
 import AdminRequests from './pages/AdminRequests';
 import AdminRequestDetail from './pages/AdminRequestDetail';
 import AdminStaff from './pages/AdminStaff';
+import Complaints from './pages/Complaints';
+import ComplaintDetail from './pages/ComplaintDetail';
+import AdminComplaints from './pages/AdminComplaints';
 import ProfilePage from './pages/ProfilePage';
 import NotFound from './pages/NotFound';
 
@@ -73,10 +76,13 @@ function AppRoutes() {
       <Route path="/submit-request" element={<PrivateRoute><SubmitRequest /></PrivateRoute>} />
       <Route path="/track-status" element={<PrivateRoute><RequestTracking /></PrivateRoute>} />
       <Route path="/requests/:id" element={<PrivateRoute><RequestDetail /></PrivateRoute>} />
+      <Route path="/complaints" element={<PrivateRoute><Complaints /></PrivateRoute>} />
+      <Route path="/complaints/:id" element={<PrivateRoute><ComplaintDetail /></PrivateRoute>} />
       <Route path="/profile" element={<PrivateRoute><ProfilePage /></PrivateRoute>} />
       <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
       <Route path="/admin/requests" element={<AdminRoute><AdminRequests /></AdminRoute>} />
       <Route path="/admin/requests/:id" element={<AdminRoute><AdminRequestDetail /></AdminRoute>} />
+      <Route path="/admin/complaints" element={<AdminRoute><AdminComplaints /></AdminRoute>} />
       <Route path="/admin/staff" element={<SuperAdminRoute><AdminStaff /></SuperAdminRoute>} />
       <Route path="*" element={<NotFound />} />
     </Routes>

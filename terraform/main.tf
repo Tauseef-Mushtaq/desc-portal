@@ -319,6 +319,11 @@ resource "kubernetes_deployment" "minio" {
 }
 
 # ─── MINIO SERVICE ─────────────────────────────────────────────────────────────
+# NodePort, not ClusterIP — a citizen's browser fetching a signed URL runs
+# outside the cluster, so the API port needs an externally-reachable path
+# in. Fixed node ports keep the value to put in S3_PUBLIC_ENDPOINT stable
+# across redeploys. (Not needed for a real cloud deployment against actual
+# AWS S3 — this whole concern only exists because MinIO is self-hosted.)
 resource "kubernetes_service" "minio" {
   metadata {
     name      = "minio"
@@ -334,14 +339,16 @@ resource "kubernetes_service" "minio" {
       name        = "api"
       port        = 9000
       target_port = 9000
+      node_port   = 30900
     }
     port {
       name        = "console"
       port        = 9001
       target_port = 9001
+      node_port   = 30901
     }
 
-    type = "ClusterIP"
+    type = "NodePort"
   }
 }
 
@@ -408,6 +415,14 @@ resource "kubernetes_deployment" "backend" {
           env {
             name  = "S3_FORCE_PATH_STYLE"
             value = "true"
+          }
+          env {
+            # REQUIRED on Minikube — see variable "minikube_ip" description.
+            # Not needed against real AWS S3 in production; leave
+            # minikube_ip unset (default) there and this becomes harmless,
+            # since storage.js falls back to S3_ENDPOINT when this is empty.
+            name  = "S3_PUBLIC_ENDPOINT"
+            value = var.minikube_ip != "" ? "http://${var.minikube_ip}:30900" : ""
           }
 
           readiness_probe {

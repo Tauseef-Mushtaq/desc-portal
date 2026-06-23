@@ -7,10 +7,18 @@ spec:
   selector:
     app: minio
   ports:
+    # NodePort, not ClusterIP — ClusterIP is only reachable from inside the
+    # cluster. A citizen's browser, fetching a signed URL for an avatar or
+    # attachment, runs outside the cluster entirely (on the host machine),
+    # so the API port needs an actual path in from outside. Fixed port
+    # numbers (rather than letting k8s pick randomly) so the value to put
+    # in S3_PUBLIC_ENDPOINT stays stable across redeploys.
     - name: api
       port: 9000
       targetPort: 9000
+      nodePort: 30900
     - name: console
       port: 9001
       targetPort: 9001
-  type: ClusterIP
+      nodePort: 30901
+  type: NodePort
