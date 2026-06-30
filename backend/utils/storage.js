@@ -58,10 +58,36 @@ const s3 = new S3Client({
 // Used only to compute signatures for download URLs handed to the browser.
 // Falls back to S3_ENDPOINT (then to real AWS S3) if no public endpoint is
 // configured, so this is a no-op change for single-endpoint setups.
-const signingClient = process.env.S3_PUBLIC_ENDPOINT
+// Used only to compute signatures for download URLs handed to the browser.
+// Resolution order:
+//   1. S3_PUBLIC_ENDPOINT, if explicitly set — always wins.
+//   2. NODE_IP + S3_PUBLIC_NODE_PORT, auto-constructed — for Minikube/bare
+//      k8s with MinIO exposed via NodePort. NODE_IP comes from Kubernetes'
+//      Downward API (status.hostIP), which Kubernetes fills in on its own —
+//      nobody has to look up `minikube ip` or hand-edit a YAML file, and it
+//      can never go stale across redeploys the way a manually-typed IP can.
+//   3. Otherwise, falls back to the internal client — correct for
+//      single-endpoint setups (docker-compose) and real AWS S3.
+function resolvePublicEndpoint() {
+  if (process.env.S3_PUBLIC_ENDPOINT) return process.env.S3_PUBLIC_ENDPOINT;
+  if (process.env.NODE_IP && process.env.S3_PUBLIC_NODE_PORT) {
+    return `http://${process.env.NODE_IP}:${process.env.S3_PUBLIC_NODE_PORT}`;
+  }
+  return null;
+}
+const publicEndpoint = resolvePublicEndpoint();
+if (process.env.S3_PUBLIC_ENDPOINT) {
+  console.log(`✅ Signed URLs will use explicit S3_PUBLIC_ENDPOINT: ${publicEndpoint}`);
+} else if (publicEndpoint) {
+  console.log(`✅ Signed URLs will use auto-discovered node IP: ${publicEndpoint}`);
+} else {
+  console.log('ℹ️  No S3_PUBLIC_ENDPOINT or NODE_IP set — signed URLs will use S3_ENDPOINT directly (correct for docker-compose and real AWS S3).');
+}
+
+const signingClient = publicEndpoint
   ? new S3Client({
       region: REGION,
-      endpoint: process.env.S3_PUBLIC_ENDPOINT,
+      endpoint: publicEndpoint,
       forcePathStyle,
       credentials,
     })

@@ -7,6 +7,7 @@ const { protect } = require('../middleware/auth');
 const { notifyAdmins } = require('../utils/notify');
 const { uploadBuffer, withAttachmentUrls, withAttachmentUrlsMany } = require('../utils/storage');
 const { withDepartment, withDepartmentMany } = require('../utils/departments');
+const { requestLimiter } = require('../middleware/rateLimiters');
 
 // Files land in memory just long enough to stream straight to S3/MinIO —
 // nothing touches local disk, so it doesn't matter which backend pod
@@ -79,7 +80,7 @@ router.get('/:id', protect, async (req, res) => {
 });
 
 // @POST /api/requests - Submit new request
-router.post('/', protect, upload.array('attachments', 5), async (req, res) => {
+router.post('/', protect, requestLimiter, upload.array('attachments', 5), async (req, res) => {
   try {
     const {
       serviceType, subject, description, priority,

@@ -10,8 +10,8 @@ const complaintSchema = new mongoose.Schema(
     // visibility/notification pipeline.
     type: { type: String, enum: ['complaint', 'feedback'], required: true },
 
-    subject: { type: String, required: true, trim: true },
-    description: { type: String, required: true },
+    subject: { type: String, required: true, trim: true, maxlength: 200 },
+    description: { type: String, required: true, maxlength: 5000 },
 
     // Optional — which department this is about. Left null for general
     // feedback about the portal/DESC overall that isn't department-specific.

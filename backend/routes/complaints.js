@@ -1,9 +1,11 @@
 const express = require('express');
 const router = express.Router();
+const { body, validationResult } = require('express-validator');
 const Complaint = require('../models/Complaint');
 const Department = require('../models/Department');
 const { protect } = require('../middleware/auth');
 const { notifyComplaintRecipients } = require('../utils/notify');
+const { complaintLimiter } = require('../middleware/rateLimiters');
 
 // @GET /api/complaints/departments - so the complaint form can offer a
 // "which department is this about?" dropdown. Admin-only department
@@ -51,47 +53,62 @@ router.get('/:id', protect, async (req, res) => {
 // @POST /api/complaints - file a complaint or share feedback, freely (no
 // service request required) — optionally about a specific department,
 // optionally referencing a request for context.
-router.post('/', protect, async (req, res) => {
-  try {
-    const { type, subject, description, department, relatedRequest } = req.body;
+//
+// complaintLimiter caps this at 8/hour per IP — the actual fix for someone
+// scripting a flood of fake complaints into a department's queue. The
+// validators below cap length (a 50,000-character "complaint" is either
+// abuse or a mistake, either way it shouldn't reach the database) and trim
+// HTML-ish content out of free text, since this text is later rendered
+// back to both the citizen and admins.
+router.post(
+  '/',
+  protect,
+  complaintLimiter,
+  [
+    body('type').isIn(['complaint', 'feedback']).withMessage('Type must be "complaint" or "feedback"'),
+    body('subject').trim().notEmpty().isLength({ max: 200 }).withMessage('Subject is required (max 200 characters)').escape(),
+    body('description').trim().notEmpty().isLength({ max: 5000 }).withMessage('Description is required (max 5000 characters)').escape(),
+    body('department').optional({ checkFalsy: true }).isMongoId().withMessage('Invalid department'),
+    body('relatedRequest').optional({ checkFalsy: true }).isMongoId().withMessage('Invalid related request'),
+  ],
+  async (req, res) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) return res.status(400).json({ success: false, errors: errors.array() });
 
-    if (!type || !['complaint', 'feedback'].includes(type)) {
-      return res.status(400).json({ success: false, message: 'Type must be "complaint" or "feedback"' });
+      const { type, subject, description, department, relatedRequest } = req.body;
+
+      let departmentId = null;
+      if (department) {
+        const dept = await Department.findById(department);
+        if (!dept) return res.status(400).json({ success: false, message: 'Department not found' });
+        departmentId = dept._id;
+      }
+
+      const complaint = await Complaint.create({
+        citizen: req.user._id,
+        type,
+        subject,
+        description,
+        department: departmentId,
+        relatedRequest: relatedRequest || null,
+      });
+
+      await complaint.populate('department', 'name icon');
+      res.status(201).json({ success: true, message: `Your ${type} has been submitted`, complaint });
+
+      // Fire-and-forget: don't make the citizen wait on notification delivery.
+      notifyComplaintRecipients({
+        departmentId,
+        type: 'general',
+        title: `New ${type} submitted${departmentId ? '' : ' (general)'}`,
+        message: `${req.user.fullName}: "${subject}"`,
+        link: `/admin/complaints`,
+      }).catch((err) => console.error('notifyComplaintRecipients failed:', err.message));
+    } catch (err) {
+      res.status(500).json({ success: false, message: err.message });
     }
-    if (!subject || !description) {
-      return res.status(400).json({ success: false, message: 'Subject and description are required' });
-    }
-
-    let departmentId = null;
-    if (department) {
-      const dept = await Department.findById(department);
-      if (!dept) return res.status(400).json({ success: false, message: 'Department not found' });
-      departmentId = dept._id;
-    }
-
-    const complaint = await Complaint.create({
-      citizen: req.user._id,
-      type,
-      subject,
-      description,
-      department: departmentId,
-      relatedRequest: relatedRequest || null,
-    });
-
-    await complaint.populate('department', 'name icon');
-    res.status(201).json({ success: true, message: `Your ${type} has been submitted`, complaint });
-
-    // Fire-and-forget: don't make the citizen wait on notification delivery.
-    notifyComplaintRecipients({
-      departmentId,
-      type: 'general',
-      title: `New ${type} submitted${departmentId ? '' : ' (general)'}`,
-      message: `${req.user.fullName}: "${subject}"`,
-      link: `/admin/complaints`,
-    }).catch((err) => console.error('notifyComplaintRecipients failed:', err.message));
-  } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
   }
-});
+);
 
 module.exports = router;

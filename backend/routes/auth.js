@@ -6,6 +6,7 @@ const { body, validationResult } = require('express-validator');
 const User = require('../models/User');
 const { protect } = require('../middleware/auth');
 const { uploadBuffer, deleteObject, withAvatarUrl } = require('../utils/storage');
+const { registerLimiter, loginLimiter } = require('../middleware/rateLimiters');
 
 const generateToken = (id) =>
   jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRE });
@@ -29,6 +30,7 @@ const avatarUpload = multer({
 // @POST /api/auth/register
 router.post(
   '/register',
+  registerLimiter,
   [
     body('fullName').trim().notEmpty().withMessage('Full name is required'),
     body('email').isEmail().withMessage('Valid email required'),
@@ -59,6 +61,7 @@ router.post(
 // @POST /api/auth/login
 router.post(
   '/login',
+  loginLimiter,
   [
     body('email').isEmail().withMessage('Valid email required'),
     body('password').notEmpty().withMessage('Password required'),

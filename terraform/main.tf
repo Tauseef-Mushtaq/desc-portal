@@ -416,13 +416,26 @@ resource "kubernetes_deployment" "backend" {
             name  = "S3_FORCE_PATH_STYLE"
             value = "true"
           }
+          # Together these let signed URLs work on Minikube with zero
+          # manual configuration. NODE_IP comes straight from Kubernetes
+          # itself via the Downward API (the node this pod is actually
+          # running on) — for a single-node Minikube cluster that's the
+          # same address `minikube ip` would print, just supplied
+          # automatically and guaranteed never to go stale across
+          # redeploys. 30900 matches the NodePort on the minio Service
+          # above. See backend/utils/storage.js for how these combine.
+          # Not used at all against real AWS S3 in production.
           env {
-            # REQUIRED on Minikube — see variable "minikube_ip" description.
-            # Not needed against real AWS S3 in production; leave
-            # minikube_ip unset (default) there and this becomes harmless,
-            # since storage.js falls back to S3_ENDPOINT when this is empty.
-            name  = "S3_PUBLIC_ENDPOINT"
-            value = var.minikube_ip != "" ? "http://${var.minikube_ip}:30900" : ""
+            name = "NODE_IP"
+            value_from {
+              field_ref {
+                field_path = "status.hostIP"
+              }
+            }
+          }
+          env {
+            name  = "S3_PUBLIC_NODE_PORT"
+            value = "30900"
           }
 
           readiness_probe {

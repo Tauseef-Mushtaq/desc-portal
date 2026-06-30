@@ -35,17 +35,21 @@ spec:
               value: ap-south-1
             - name: S3_FORCE_PATH_STYLE
               value: "true"
-            # REQUIRED on Minikube: MinIO's API is only reachable from
-            # outside the cluster via the NodePort in k8s/minio/service.yaml
-            # (30900). Replace REPLACE_WITH_MINIKUBE_IP below with the
-            # output of `minikube ip` before applying — otherwise signed
-            # URLs for avatars/attachments point at the internal "minio:9000"
-            # hostname, which a browser outside the cluster can never
-            # resolve, and images will silently fail to load. Not needed
-            # against real AWS S3 in production — just leave this var unset
-            # there.
-            - name: S3_PUBLIC_ENDPOINT
-              value: "http://REPLACE_WITH_MINIKUBE_IP:30900"
+            # Together these let signed URLs work on Minikube without any
+            # manual IP lookup or YAML editing. NODE_IP comes straight from
+            # Kubernetes itself (the node this pod is actually running on) —
+            # for a single-node Minikube cluster that's the same address
+            # `minikube ip` would print, just supplied automatically and
+            # guaranteed never to go stale. 30900 matches the NodePort in
+            # k8s/minio/service.yaml. See backend/utils/storage.js for how
+            # these combine. Not used at all against real AWS S3 in
+            # production — there's no MinIO, so neither variable matters.
+            - name: NODE_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.hostIP
+            - name: S3_PUBLIC_NODE_PORT
+              value: "30900"
           readinessProbe:
             httpGet:
               path: /api/health

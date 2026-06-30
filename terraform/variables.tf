@@ -115,16 +115,3 @@ variable "minio_root_password" {
   default     = "minioadmin123"
   sensitive   = true
 }
-
-variable "minikube_ip" {
-  description = <<-EOT
-    Output of `minikube ip`, only needed when deploying to Minikube.
-    MinIO's API is only reachable from outside the cluster via the NodePort
-    in k8s/minio/service.yaml (30900) — a browser fetching a signed avatar
-    or attachment URL runs outside the cluster, so it needs this to resolve
-    anything. Leave as the default empty string for a real cloud deployment
-    against actual AWS S3, where this isn't a concern at all.
-  EOT
-  type        = string
-  default     = ""
-}
